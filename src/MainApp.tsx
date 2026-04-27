@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { useMediaPipe } from './hooks/useMediaPipe';
 import { useAudioSynthesis } from './hooks/useAudioSynthesis';
 import { useRecording } from './hooks/useRecording';
+import { Camera, Video, Square } from 'lucide-react';
 
 export default function MainApp() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -46,19 +47,36 @@ export default function MainApp() {
       <div className="absolute top-0 left-0 w-full h-full bg-[#0a0500]/30 mix-blend-multiply pointer-events-none z-20" />
       
       {/* UI Overlay */}
-      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-50 flex gap-4">
-        <button 
-          onClick={takeSnapshot}
-          className="px-8 py-3 bg-cyan-600/90 hover:bg-cyan-500 text-white text-lg font-bold rounded-full shadow-[0_0_15px_rgba(8,145,178,0.8)] transition-all backdrop-blur-sm border border-cyan-400/30 flex items-center justify-center gap-3 whitespace-nowrap"
-        >
-          <span>📷 Snapshot</span>
-        </button>
-        <button 
-          onClick={toggleRecording}
-          className={`px-8 py-3 text-white text-lg font-bold rounded-full shadow-[0_0_15px_rgba(220,38,38,0.8)] transition-all backdrop-blur-sm border border-red-400/30 flex items-center justify-center gap-3 whitespace-nowrap ${isRecording ? 'bg-red-500 animate-pulse' : 'bg-red-600/90 hover:bg-red-500'}`}
-        >
-          <span>{isRecording ? '⏹ Stop Recording' : '🔴 Record Video'}</span>
-        </button>
+      <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-50 flex gap-8 items-center">
+        {/* Snapshot Button */}
+        <div className="group relative flex flex-col items-center">
+          <button 
+            onClick={takeSnapshot}
+            className="w-16 h-16 bg-cyan-600 hover:bg-cyan-500 text-white rounded-full shadow-[0_10px_20px_rgba(8,145,178,0.6)] transition-all backdrop-blur-sm border border-cyan-400/50 flex items-center justify-center transform hover:-translate-y-2 hover:shadow-[0_15px_25px_rgba(8,145,178,0.8)] active:translate-y-0"
+          >
+            <Camera size={28} strokeWidth={2.5} />
+          </button>
+          <span className="absolute -top-10 opacity-0 group-hover:opacity-100 transition-opacity bg-black/80 text-cyan-400 text-sm font-bold px-3 py-1 rounded-full border border-cyan-500/30 whitespace-nowrap">
+            Snapshot
+          </span>
+        </div>
+
+        {/* Recording Button */}
+        <div className="group relative flex flex-col items-center">
+          <button 
+            onClick={toggleRecording}
+            className={`w-20 h-20 text-white rounded-full transition-all backdrop-blur-sm border-2 flex items-center justify-center transform hover:-translate-y-2 ${
+              isRecording 
+                ? 'bg-red-500 border-red-300 shadow-[0_0_30px_rgba(239,68,68,1)] animate-[pulse_1s_ease-in-out_infinite]' 
+                : 'bg-red-600 hover:bg-red-500 border-red-400/50 shadow-[0_10px_20px_rgba(220,38,38,0.6)] hover:shadow-[0_15px_25px_rgba(220,38,38,0.8)] active:translate-y-0'
+            }`}
+          >
+            {isRecording ? <Square size={32} fill="currentColor" /> : <Video size={36} strokeWidth={2.5} />}
+          </button>
+          <span className="absolute -top-10 opacity-0 group-hover:opacity-100 transition-opacity bg-black/80 text-red-400 text-sm font-bold px-3 py-1 rounded-full border border-red-500/30 whitespace-nowrap">
+            {isRecording ? 'Stop Recording' : 'Record Jutsu'}
+          </span>
+        </div>
       </div>
 
       {/* Hidden Videos for Compositing */}
