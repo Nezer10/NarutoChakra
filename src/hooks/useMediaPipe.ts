@@ -36,28 +36,6 @@ function checkHandState(pts: Point[]) {
         knk: pts[9]
     };
 }
-function mapToScreen(nx: number, ny: number, vElement: HTMLVideoElement) {
-    if (!vElement.videoWidth) return { x: nx * window.innerWidth, y: ny * window.innerHeight };
-
-    const vRatio = vElement.videoWidth / vElement.videoHeight;
-    const wRatio = window.innerWidth / window.innerHeight;
-    let renderWidth, renderHeight;
-
-    if (wRatio > vRatio) {
-        renderWidth = window.innerWidth;
-        renderHeight = window.innerWidth / vRatio;
-    } else {
-        renderWidth = window.innerHeight * vRatio;
-        renderHeight = window.innerHeight;
-    }
-    const xOffset = (window.innerWidth - renderWidth) / 2;
-    const yOffset = (window.innerHeight - renderHeight) / 2;
-
-    return {
-        x: nx * renderWidth + xOffset,
-        y: ny * renderHeight + yOffset
-    };
-}
 
 export function useMediaPipe(videoRef: RefObject<HTMLVideoElement | null>, canvasRef: RefObject<HTMLCanvasElement | null>) {
     const [jutsu, setJutsu] = useState<string>('');
@@ -83,12 +61,11 @@ export function useMediaPipe(videoRef: RefObject<HTMLVideoElement | null>, canva
             ctx.save();
             ctx.clearRect(0, 0, cElement.width, cElement.height);
 
+            // Draw Webcam Feed
+            ctx.drawImage(vElement, 0, 0, cElement.width, cElement.height);
+
             let activeJutsu = '';
             let handsData: any[] = [];
-            
-            if (nVid) nVid.style.display = 'none';
-            if (sVid) sVid.style.display = 'none';
-            if (fVid) fVid.style.display = 'none';
 
             if (res.multiHandLandmarks && res.multiHandedness) {
                 res.multiHandLandmarks.forEach((pts: Point[], i: number) => {
@@ -120,7 +97,6 @@ export function useMediaPipe(videoRef: RefObject<HTMLVideoElement | null>, canva
                     wasOpen[idx] = state.isOpen;
                 });
 
-                // Check for single-handed Tiger Seal (Fireball Jutsu)
                 const tigerHand = handsData.find(h => h.isTigerSealHalf);
                 if (tigerHand) {
                     activeJutsu = 'Fireball Jutsu';
@@ -133,33 +109,35 @@ export function useMediaPipe(videoRef: RefObject<HTMLVideoElement | null>, canva
                     if (pwr[0] > 0.8 && pwr[1] > 0.8) activeJutsu = 'Twin Rasen-Chidori';
                 }
 
-                // Render Videos
+                // Render Videos to Canvas
+                ctx.save();
+                ctx.globalCompositeOperation = 'screen';
+                
                 if (activeJutsu === 'Fireball Jutsu' && tigerHand && fVid) {
-                    const cx = (tigerHand.indexTip.x + tigerHand.middleTip.x) / 2;
-                    const cy = Math.min(tigerHand.indexTip.y, tigerHand.middleTip.y); // Use the highest fingertip
-                    const mapped = mapToScreen(cx, cy, vElement);
-                    fVid.style.left = `${window.innerWidth - mapped.x}px`;
-                    fVid.style.top = `${mapped.y}px`;
-                    fVid.style.display = 'block';
-                    fVid.style.opacity = '1';
+                    const cx = (tigerHand.indexTip.x + tigerHand.middleTip.x) / 2 * cElement.width;
+                    const cy = Math.min(tigerHand.indexTip.y, tigerHand.middleTip.y) * cElement.height;
+                    
+                    const vw = 400; // Fireball width
+                    const vh = vw * (fVid.videoHeight / fVid.videoWidth);
+                    ctx.globalAlpha = 1;
+                    ctx.drawImage(fVid, cx - vw / 2, cy - vh / 2, vw, vh);
                 } else if (activeJutsu) {
                     handsData.forEach(h => {
                         if (h.isOpen && pwr[h.idx] > 0.01) {
-                            // Horizontally centered on the hand, vertically elevated to the fingertip
-                            const cx = (h.wrist.x + h.knk.x) / 2;
-                            const cy = h.middleTip.y;
+                            const cx = (h.wrist.x + h.knk.x) / 2 * cElement.width;
+                            const cy = h.middleTip.y * cElement.height;
                             
-                            const mapped = mapToScreen(cx, cy, vElement);
                             const vid = h.idx === 0 ? nVid : sVid;
                             if (vid) {
-                                vid.style.left = `${window.innerWidth - mapped.x}px`;
-                                vid.style.top = `${mapped.y}px`;
-                                vid.style.display = 'block';
-                                vid.style.opacity = pwr[h.idx].toString();
+                                const vw = h.idx === 0 ? 1000 : 1600; // Rasengan vs Chidori sizing
+                                const vh = vw * (vid.videoHeight / vid.videoWidth);
+                                ctx.globalAlpha = pwr[h.idx];
+                                ctx.drawImage(vid, cx - vw / 2, cy - vh / 2, vw, vh);
                             }
                         }
                     });
                 }
+                ctx.restore();
             } else {
                 pwr = [Math.max(0, pwr[0] - 0.15), Math.max(0, pwr[1] - 0.15)];
                 wasOpen = [false, false];

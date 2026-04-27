@@ -1,15 +1,23 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export function useAudioSynthesis(jutsu: string) {
     const audioCtxRef = useRef<AudioContext | null>(null);
     const noiseNodeRef = useRef<AudioBufferSourceNode | null>(null);
     const gainNodeRef = useRef<GainNode | null>(null);
+    const destNodeRef = useRef<MediaStreamAudioDestinationNode | null>(null);
+    const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
 
     useEffect(() => {
         if (!audioCtxRef.current && jutsu) {
             audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
             gainNodeRef.current = audioCtxRef.current.createGain();
+            destNodeRef.current = audioCtxRef.current.createMediaStreamDestination();
+            
+            // Connect to speakers AND to the recording destination
             gainNodeRef.current.connect(audioCtxRef.current.destination);
+            gainNodeRef.current.connect(destNodeRef.current);
+            
+            setAudioStream(destNodeRef.current.stream);
         }
 
         const ctx = audioCtxRef.current;
@@ -80,4 +88,6 @@ export function useAudioSynthesis(jutsu: string) {
             }
         };
     }, []);
+
+    return audioStream;
 }
